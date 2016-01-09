@@ -151,7 +151,7 @@ Resource::~Resource() {
 }
 
 void Resource::hsqUnpack(byte *inData, byte *outData) {
-	byte count;
+	uint16 count;
 	int16 offset;
 	BitByteReader br(inData);
 	byte *dst = outData;
@@ -165,7 +165,7 @@ void Resource::hsqUnpack(byte *inData, byte *outData) {
 				byte b2 = br.getByte();
 
 				count = b1 & 0x7;
-				offset = ((b1 >> 3) | (b2 << 5)) - 0x2000;
+				offset = ((b1 >> 3) | (b2 << 5)) - 8192;
 
 				if (!count)
 					count = br.getByte();
@@ -173,7 +173,7 @@ void Resource::hsqUnpack(byte *inData, byte *outData) {
 				if (!count)
 					break;	// finish the unpacking
 			} else {
-				count = br.getBit() * 2;
+				count = br.getBit() * 2 ;
 				count += br.getBit();
 				offset = br.getByte() - 256;
 			}
@@ -183,8 +183,8 @@ void Resource::hsqUnpack(byte *inData, byte *outData) {
 			byte *src = dst + offset;
 			while (count--)
 				*dst++ = *src++;
-		}	// if (!b)
-	}	// while (true)
+		}
+	}
 }
 
 void Resource::dump(Common::String outFilename) {
