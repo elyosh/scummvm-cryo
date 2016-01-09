@@ -1,0 +1,66 @@
+*~
+.*.swp
+.*.swo
+*.o
+lib*.a
+.deps
+
+#Ignore XCode user data and build files
+xcuserdata
+project.xcworkspace
+
+#ignore thumbnails created by windows
+Thumbs.db
+#Ignore files build by Visual Studio
+*.obj
+*.exe
+*.pdb
+*.user
+*.aps
+*.pch
+*.vspscc
+*.ncb
+*.suo
+*.tlb
+*.tlh
+*.bak
+*.cache
+*.ilk
+*.log
+*.sbr
+*.sdf
+*.opensdf
+*.opendb
+obj/
+_ReSharper*/
+ipch/
+[Tt]est[Rr]esult*
+*.vcproj
+*.sln
+*.vsprops
+*.props
+*.vcxproj*
+*.bat
+*.tss
+
+#Ignore default Visual Studio build folders
+[Dd]ebug/
+[Rr]elease/
+[Dd]ebug32/
+[Rr]elease32/
+[Dd]ebug64/
+[Rr]elease64/
+LLVM32/
+LLVM64/
+
+#Ignore Qt Creator project files
+ScummVM.config
+ScummVM.creator
+ScummVM.files
+ScummVM.includes
+
+#Ignore Komodo IDE/Edit project files
+*.komodoproject
+
+#Ignore Mac DS_Store files
+.DS_Store
