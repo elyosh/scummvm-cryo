@@ -57,7 +57,8 @@ void FixedFont::drawText(Common::String text, uint16 x, uint16 y, byte color) {
 	byte charLine;
 	byte *dest;
 
-	byte *scr = (byte *)_system->lockScreen()->pixels;
+	Graphics::Surface *screen = _system->lockScreen();
+	byte *scr = (byte *)screen->getPixels();
 
 	for (uint c = 0; c < text.size(); c++) {
 		dest = scr + y * SCREEN_WIDTH + curX;
@@ -68,7 +69,7 @@ void FixedFont::drawText(Common::String text, uint16 x, uint16 y, byte color) {
 		for (uint charY = 0; charY < FIXED_FONT_HEIGHT; charY++) {
 			charLine = _res->_stream->readByte();
 
-			for (uint charX = 0; charX < _charWidth[curChar]; charX++) {
+			for (uint charX = 0; charX < _charWidth[(uint8)curChar]; charX++) {
 				if (charLine & 0x80)
 					dest[charX] = color;
 
@@ -78,7 +79,7 @@ void FixedFont::drawText(Common::String text, uint16 x, uint16 y, byte color) {
 			dest += SCREEN_WIDTH;
 		}
 
-		curX += _charWidth[curChar];
+		curX += _charWidth[(uint8)curChar];
 	}
 
 	_system->unlockScreen();

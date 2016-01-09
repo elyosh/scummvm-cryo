@@ -43,10 +43,10 @@ namespace Cryo {
 CryoConsole::CryoConsole(CryoEngine *engine) : GUI::Debugger(),
 	_engine(engine) {
 
-	DCmd_Register("dump",				WRAP_METHOD(CryoConsole, cmdDump));
-	DCmd_Register("sentences",			WRAP_METHOD(CryoConsole, cmdSentences));
-	DCmd_Register("sound",				WRAP_METHOD(CryoConsole, cmdSound));
-	DCmd_Register("sprite",				WRAP_METHOD(CryoConsole, cmdSprite));
+	registerCmd("dump",				WRAP_METHOD(CryoConsole, cmdDump));
+	registerCmd("sentences",			WRAP_METHOD(CryoConsole, cmdSentences));
+	registerCmd("sound",				WRAP_METHOD(CryoConsole, cmdSound));
+	registerCmd("sprite",				WRAP_METHOD(CryoConsole, cmdSprite));
 }
 
 CryoConsole::~CryoConsole() {
@@ -54,10 +54,10 @@ CryoConsole::~CryoConsole() {
 
 bool CryoConsole::cmdDump(int argc, const char **argv) {
 	if (argc < 2) {
-		DebugPrintf("Decompresses the given HSQ file into a raw uncompressed file\n");
-		DebugPrintf("  Usage: %s <file name>\n\n", argv[0]);
-		DebugPrintf("  Example: %s phrase11.hsq\n", argv[0]);
-		DebugPrintf("  The above will uncompress phrase11.hsq into phrase11.hsq.raw\n");
+		debugPrintf("Decompresses the given HSQ file into a raw uncompressed file\n");
+		debugPrintf("  Usage: %s <file name>\n\n", argv[0]);
+		debugPrintf("  Example: %s phrase11.hsq\n", argv[0]);
+		debugPrintf("  The above will uncompress phrase11.hsq into phrase11.hsq.raw\n");
 		return true;
 	}
 
@@ -69,16 +69,16 @@ bool CryoConsole::cmdDump(int argc, const char **argv) {
 	hsqResource->dump(fileName + ".raw");
 	delete hsqResource;
 
-	DebugPrintf("%s has been dumped to %s\n", fileName.c_str(), (fileName + ".raw").c_str());
+	debugPrintf("%s has been dumped to %s\n", fileName.c_str(), (fileName + ".raw").c_str());
 	return true;
 }
 
 bool CryoConsole::cmdSentences(int argc, const char **argv) {
 	if (argc < 2) {
-		DebugPrintf("Shows information about a sentence file, or prints a specific sentence from a file\n");
-		DebugPrintf("  Usage: %s <file name> <sentence number>\n\n", argv[0]);
-		DebugPrintf("  Example: \"%s phrase12\" - show information on file phrase12.hsq\n", argv[0]);
-		DebugPrintf("  Example: \"%s phrase12.hsq 0\" - print sentence with index 0 from file phrase12.hsq\n\n", argv[0]);
+		debugPrintf("Shows information about a sentence file, or prints a specific sentence from a file\n");
+		debugPrintf("  Usage: %s <file name> <sentence number>\n\n", argv[0]);
+		debugPrintf("  Example: \"%s phrase12\" - show information on file phrase12.hsq\n", argv[0]);
+		debugPrintf("  Example: \"%s phrase12.hsq 0\" - print sentence with index 0 from file phrase12.hsq\n\n", argv[0]);
 		return true;
 	}
 
@@ -88,12 +88,12 @@ bool CryoConsole::cmdSentences(int argc, const char **argv) {
 
 	Sentences *s = new Sentences(fileName);
 	if (argc == 2) {
-		DebugPrintf("File contains %d sentences\n", s->count());
+		debugPrintf("File contains %d sentences\n", s->count());
 	} else {
 		if (atoi(argv[2]) >= s->count())
-			DebugPrintf("Invalid sentence\n");
+			debugPrintf("Invalid sentence\n");
 		else
-			DebugPrintf("%s\n", s->getSentence(atoi(argv[2]), true).c_str());
+			debugPrintf("%s\n", s->getSentence(atoi(argv[2]), true).c_str());
 	}
 	delete s;
 
@@ -102,13 +102,13 @@ bool CryoConsole::cmdSentences(int argc, const char **argv) {
 
 bool CryoConsole::cmdSound(int argc, const char **argv) {
 	if (argc < 2) {
-		DebugPrintf("Plays a sound file (sd*.hsq). Valid sounds are 1-11\n");
+		debugPrintf("Plays a sound file (sd*.hsq). Valid sounds are 1-11\n");
 		return true;
 	}
 
 	uint16 soundId = atoi(argv[1]);
 	if (soundId < 1 || soundId > 11) {
-		DebugPrintf("Invalid sound\n");
+		debugPrintf("Invalid sound\n");
 		return true;
 	}
 
@@ -139,11 +139,11 @@ bool CryoConsole::cmdSound(int argc, const char **argv) {
 
 bool CryoConsole::cmdSprite(int argc, const char **argv) {
 	if (argc < 2) {
-		DebugPrintf("Shows information about a game sprite (character/background) file\n");
-		DebugPrintf("  Usage: %s <file name> <frame number> <x> <y>\n\n", argv[0]);
-		DebugPrintf("  Example: \"%s mirror\" - show information on file mirror.hsq\n", argv[0]);
-		DebugPrintf("  Example: \"%s mirror.hsq 0\" - display frame number 0 from mirror.hsq at 0, 0\n", argv[0]);
-		DebugPrintf("  Example: \"%s mirror.hsq 0 100 100\" - display frame number 0 from mirror.hsq at 100, 100\n", argv[0]);
+		debugPrintf("Shows information about a game sprite (character/background) file\n");
+		debugPrintf("  Usage: %s <file name> <frame number> <x> <y>\n\n", argv[0]);
+		debugPrintf("  Example: \"%s mirror\" - show information on file mirror.hsq\n", argv[0]);
+		debugPrintf("  Example: \"%s mirror.hsq 0\" - display frame number 0 from mirror.hsq at 0, 0\n", argv[0]);
+		debugPrintf("  Example: \"%s mirror.hsq 0 100 100\" - display frame number 0 from mirror.hsq at 100, 100\n", argv[0]);
 		return true;
 	}
 
@@ -157,10 +157,10 @@ bool CryoConsole::cmdSprite(int argc, const char **argv) {
 	uint16 frameCount = s->getFrameCount();
 	if (argc == 2) {
 		// Show sprite info
-		DebugPrintf("Frame count: %d\n", frameCount);
+		debugPrintf("Frame count: %d\n", frameCount);
 		for (int i = 0; i < frameCount; i++) {
 			FrameInfo info = s->getFrameInfo(i);
-			DebugPrintf("%d: offset %d, comp: %d, size: %dx%d, pal offset: %d\n",
+			debugPrintf("%d: offset %d, comp: %d, size: %dx%d, pal offset: %d\n",
 					i, info.offset, info.isCompressed, info.width, info.height, info.palOffset);
 		}
 	} else {
@@ -172,7 +172,7 @@ bool CryoConsole::cmdSprite(int argc, const char **argv) {
 		uint16 y = (argc > 4) ? atoi(argv[4]) : 0;
 
 		if (frameNumber >= frameCount) {
-			DebugPrintf("Invalid frame\n");
+			debugPrintf("Invalid frame\n");
 		} else {
 			s->setPalette();
 			s->drawFrame(frameNumber, x, y);
