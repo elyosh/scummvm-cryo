@@ -173,7 +173,7 @@ void Resource::hsqUnpack(byte *inData, byte *outData) {
 				if (!count)
 					break;	// finish the unpacking
 			} else {
-				count = br.getBit() * 2 ;
+				count = br.getBit() * 2;
 				count += br.getBit();
 				offset = br.getByte() - 256;
 			}
