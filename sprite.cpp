@@ -56,14 +56,13 @@ void Sprite::setPalette() {
 		if (palStart == 0xFF && palCount == 0xFF)
 			break;
 
-		byte *palChunk = new byte[palCount * 4];	// RGBA
+		byte *palChunk = new byte[palCount * 3];	// RGB
 		for (uint i = 0; i < palCount; i++) {
 			if (i + palStart > 256)
 				break;
-			palChunk[i * 4 + 0] = _res->_stream->readByte() << 2;	// R
-			palChunk[i * 4 + 1] = _res->_stream->readByte() << 2;	// G
-			palChunk[i * 4 + 2] = _res->_stream->readByte() << 2;	// B
-			palChunk[i * 4 + 3] = 0;	// A
+			palChunk[i * 3 + 0] = _res->_stream->readByte() << 2;	// R
+			palChunk[i * 3 + 1] = _res->_stream->readByte() << 2;	// G
+			palChunk[i * 3 + 2] = _res->_stream->readByte() << 2;	// B
 		}
 		_system->getPaletteManager()->setPalette(palChunk, palStart, palCount);
 		delete[] palChunk;

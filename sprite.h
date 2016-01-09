@@ -50,7 +50,6 @@ public:
 
 private:
 	Resource *_res;
-	byte _pal[256 * 3];
 
 	OSystem *_system;
 };
