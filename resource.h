@@ -43,7 +43,7 @@ public:
 private:
 	void hsqUnpack(byte *inData, byte *outData);
 
-	uint16 _size;
+	uint32 _size;
 	byte *_data;
 };
 
