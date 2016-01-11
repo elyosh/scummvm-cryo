@@ -8,194 +8,177 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL: 
- * $Id: resource.cpp
- *
  */
 
 #include "common/file.h"
+#include "common/debug.h"
+#include "common/substream.h"
+#include "common/archive.h"
 
 #include "cryo/resource.h"
+#include "cryo/hsq.h"
 
 namespace Cryo {
 
 #define HSQ_PACKED_CHECKSUM 171
 
-/**
- * A class that reads both bits and bytes from a stream, with a 16-bit buffer.
- */
-class BitByteReader {
-public:
-	BitByteReader(byte *data) : _data(data), _curBit(0), _queue(0) { }
+DatArchive::DatArchive(const Common::String &filename) : _datFilename(filename) {
+	Common::File datFile;
 
-	byte getBit() {
-		if (!_curBit)
-			refillQueue();
-
-		byte result = _queue & 0x1;
-		_queue >>= 1;
-		_curBit--;
-
-		return result;
+	if (!datFile.open(_datFilename)) {
+		warning("DatArchive::DatArchive(): Could not find archive file %s", _datFilename.c_str());
+		return;
 	}
 
-	byte getByte() {
-		return *_data++;
+	uint16 entries = datFile.readUint16LE();
+
+	DatEntry entry;
+	DatEntry *entr;
+
+	for (uint16 i = 0; i < entries; i++) {
+		datFile.read(&entry.filename, 16);
+
+		entry.size = datFile.readUint32LE();
+		entry.offset = datFile.readUint32LE();
+
+		entr = new DatEntry(entry);
+
+		_files[entry.filename] = entr;
+
+		datFile.readByte();
+		//if (_fileTable[i].offset != 0)
+		//	debug("Entry %d: name: %s size: %d offset: %d", i, _fileTable[i].fileName, _fileTable[i].size, _fileTable[i].offset);
+	}
+}
+
+bool DatArchive::hasFile(const Common::String &name) const {
+	return _files.contains(name);
+}
+
+int DatArchive::listMembers(Common::ArchiveMemberList &list) const {
+	int matches = 0;
+
+	FileMap::const_iterator it = _files.begin();
+	for ( ; it != _files.end(); ++it) {
+		list.push_back(Common::ArchiveMemberList::value_type(new Common::GenericArchiveMember(it->_value->filename, this)));
+		matches++;
 	}
 
-private:
-	void refillQueue() {
-		_curBit = 16;
-		_queue = READ_LE_UINT16(_data);
-		_data += 2;
+	return matches;
+}
+
+const Common::ArchiveMemberPtr DatArchive::getMember(const Common::String &name) const {
+	if (!hasFile(name))
+		return Common::ArchiveMemberPtr();
+
+	return Common::ArchiveMemberPtr(new Common::GenericArchiveMember(name, this));
+}
+
+Common::SeekableReadStream *DatArchive::createReadStreamForMember(const Common::String &name) const {
+	if (!_files.contains(name)) {
+		return 0;
 	}
 
-	byte *_data;
-	byte _curBit;
-	uint16 _queue;
-};
+	DatEntry *entry = _files[name];
 
-Resource::Resource(Common::String filename) {
-	Common::File f;
-	uint32 origSize = 0;
-	byte *origData = 0;
+	Common::File *archive = new Common::File();
+	if (!archive->open(_datFilename)) {
+		delete archive;
+		return NULL;
+	}
 
-	filename.toUppercase();
+	return new Common::SeekableSubReadStream(archive, entry->offset, entry->offset + entry->size, DisposeAfterUse::YES);
+}
 
-	// FIXME: Don't reload the whole file table
-	// TODO: Use game flags instead of searching for DUNE.DAT
-	// TODO: This isn't really good for large files (e.g. videos),
-	// as the file contents are loaded in memory. Consider using
-	// SeekableSubReadStream instead
-	if (f.open("DUNE.DAT")) {
-		// CD version
-		uint16 entries = f.readUint16LE();
-		char cdFileName[16];
-		uint32 cdFileOffset = 0;
+Common::Archive *makeDatArchive(const Common::String &name) {
+	return new DatArchive(name);
+}
 
-		for (uint16 i = 0; i < entries; i++) {
-			f.read(cdFileName, 16);
-			origSize = f.readUint32LE();
-			cdFileOffset = f.readUint32LE();
-			f.readByte();	// 0
 
-			if (filename == cdFileName) {
-				f.seek(cdFileOffset);
-				break;
-			}
-		}
-
-		if (!cdFileOffset)
-			error("File %s not found in dune.dat", filename.c_str());
+ResourceManager::ResourceManager(bool isCD) : _isCD(isCD) {
+	if (_isCD) {
+		_archive = (DatArchive *)makeDatArchive("DUNE.DAT");
 	} else {
-		// Floppy version
-		if (f.open(filename)) {
-			origSize = f.size();
-		} else {
-			error("Error reading from file %s", filename.c_str());
-		}
+		_archive = 0;
+	}
+}
+
+ResourceManager::~ResourceManager() {
+	delete _archive;
+}
+
+Common::SeekableReadStream *ResourceManager::getResource(Common::String fileName) {
+	Common::SeekableReadStream *rsrc = NULL;
+	Common::SeekableReadStream *res = NULL;
+
+	if (_isCD) {
+		rsrc = _archive->createReadStreamForMember(fileName);
+	} else {
+		Common::File* file = new Common::File();
+		file->open(fileName);
+		rsrc = file;
 	}
 
-	origData = new byte[origSize];
-	f.read(origData, origSize);
-	f.close();
+	if (!rsrc)
+		error("Could not get file %s", fileName.c_str());
 
-	_size = origSize;
-	_data = origData;
-
-	if (_size < 6)
-		error("File %s is too small to be an HSQ file", filename.c_str());
-
-	// Get a checksum of the first 6 bytes
 	byte sum = 0;	// sum must be a byte, so that the salt value can overflow it to 0xAB
 	for (int i = 0; i < 6; i++)
-		sum += _data[i];
+		sum += rsrc->readByte();
 
-	if (sum == HSQ_PACKED_CHECKSUM) {	// HSQ compression
-		// Details taken from http://wiki.multimedia.cx/index.php?title=HNM_(1)
+	rsrc->seek(0);
 
-		// Read 6 byte header
-		_size = READ_LE_UINT16(_data);
-		assert (*(_data + 2) == 0);	// must be 0
-		uint16 packedSize = READ_LE_UINT16(_data + 3);
-		if (packedSize != origSize)
-			error("File %s is corrupt - size is %d, it should be %d", filename.c_str(), origSize, packedSize);
-		// one byte salt, to adjust checksum to 171 (0xAB)
+	if (sum == HSQ_PACKED_CHECKSUM) {
+		uint16 unpackedSize = rsrc->readUint16LE();
+		assert (rsrc->readByte() == 0);
+		uint16 packedSize = rsrc->readUint16LE();
+		rsrc->readByte(); // Salt byte for checksum
 
-		_data = new byte[_size];
-		memset(_data, 0, _size);
+		if (packedSize != rsrc->size())
+			error("File %s is corrupt - size is %d, it should be %d", fileName.c_str(), rsrc->size(), packedSize);
 
-		hsqUnpack(origData + 6, _data);
+		byte *unpackData = new byte[unpackedSize];
 
-		// Delete the original packed data
-		delete[] origData;
-	}	// if (sum == PACKED_CHECKSUM)
-
-	// Create a memory read stream of the final data
-	_stream = new Common::MemoryReadStream(_data, _size);
-}
-
-Resource::~Resource() {
-	delete _stream;
-	delete _data;
-}
-
-void Resource::hsqUnpack(byte *inData, byte *outData) {
-	uint16 count;
-	int16 offset;
-	BitByteReader br(inData);
-	byte *dst = outData;
-
-	while (true) {
-		if (br.getBit()) {
-			*dst++ = br.getByte();
-		} else {
-			if (br.getBit()) {
-				byte b1 = br.getByte();
-				byte b2 = br.getByte();
-
-				count = b1 & 0x7;
-				offset = ((b1 >> 3) | (b2 << 5)) - 8192;
-
-				if (!count)
-					count = br.getByte();
-							
-				if (!count)
-					break;	// finish the unpacking
-			} else {
-				count = br.getBit() * 2;
-				count += br.getBit();
-				offset = br.getByte() - 256;
-			}
-
-			count += 2;
-
-			byte *src = dst + offset;
-			while (count--)
-				*dst++ = *src++;
-		}
+		HsqReadStream hsqStream(rsrc);
+		uint32 unpacked = hsqStream.read(unpackData, unpackedSize);
+		res = new Common::MemoryReadStream(unpackData, unpacked, DisposeAfterUse::YES);
+	} else {
+		rsrc->seek(0);
+		res = rsrc;
 	}
+
+	return res;
 }
 
-void Resource::dump(Common::String outFilename) {
+bool ResourceManager::dumpResource(Common::String fileName) {
+	Common::SeekableReadStream *rsrc = getResource(fileName);
+	uint16 size = rsrc->size();
+
+	byte *data = new byte[size];
+
+	rsrc->read(data, size);
+
+	debug("Dumping %s size %d", fileName.c_str(), size);
+
 	Common::DumpFile f;
-	if (f.open(outFilename)) {
-		f.write(_data, _size);
+	if (f.open(fileName + ".raw")) {
+		f.write(data, size);
 		f.flush();
 		f.close();
-	} else {
-		warning("Error opening %s for output", outFilename.c_str());
 	}
+	delete[] data;
+
+	return true;
 }
 
 } // End of namespace Cryo

@@ -8,22 +8,17 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL: file:///svn/p/dunerevival/code/trunk/cryo/console.cpp $
- * $Id: console.cpp 98 2013-12-09 17:11:32Z monsieurouxx $
- *
  */
-
-// Console module
 
 #include "common/system.h"
 
@@ -65,9 +60,8 @@ bool CryoConsole::cmdDump(int argc, const char **argv) {
 	if (!fileName.contains('.'))
 		fileName += ".hsq";
 
-	Resource *hsqResource = new Resource(fileName);
-	hsqResource->dump(fileName + ".raw");
-	delete hsqResource;
+	ResourceManager *resMan = _engine->getResourceManager();
+	resMan->dumpResource(fileName);
 
 	debugPrintf("%s has been dumped to %s\n", fileName.c_str(), (fileName + ".raw").c_str());
 	return true;
@@ -86,7 +80,7 @@ bool CryoConsole::cmdSentences(int argc, const char **argv) {
 	if (!fileName.contains('.'))
 		fileName += ".hsq";
 
-	Sentences *s = new Sentences(fileName);
+	Sentences *s = new Sentences(fileName, _engine);
 	if (argc == 2) {
 		debugPrintf("File contains %d sentences\n", s->count());
 	} else {
@@ -115,18 +109,9 @@ bool CryoConsole::cmdSound(int argc, const char **argv) {
 	char filename[10];
 	sprintf(filename, "sd%x.hsq", soundId);
 
-	Resource *res = new Resource(filename);
-	Common::SeekableReadStream& readS = *res->_stream;
+	ResourceManager *resMan = _engine->getResourceManager();
+	Common::SeekableReadStream& readS = *resMan->getResource(filename);
 	Audio::SoundHandle handle;
-	/* OLD STYLE 
-	int size = res->_stream->size();
-	int rate = 0;
-	
-	byte *data = Audio::loadVOCFromStream(readS, size, rate);
-	delete res;
-
-	Audio::RewindableAudioStream *stream = Audio::makeRawStream(data, size, rate, Audio::FLAG_UNSIGNED);
-	*/
 
 	//NEW STYLE
 	Audio::RewindableAudioStream *stream = Audio::makeVOCStream(&readS,Audio::FLAG_UNSIGNED);
@@ -151,7 +136,7 @@ bool CryoConsole::cmdSprite(int argc, const char **argv) {
 	if (!fileName.contains('.'))
 		fileName += ".hsq";
 
-	Sprite *s = new Sprite(fileName, _engine->_system);
+	Sprite *s = new Sprite(fileName, _engine);
 	bool showConsole = true;
 
 	uint16 frameCount = s->getFrameCount();

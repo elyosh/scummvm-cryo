@@ -20,37 +20,52 @@
  *
  */
 
-#ifndef CRYO_SPRITE_H
-#define CRYO_SPRITE_H
+#ifndef CRYO_HSQ_STREAM_H
+#define CRYO_HSQ_STREAM_H
 
-#include "cryo/cryo.h"
+#include "common/stream.h"
+#include "common/array.h"
+
+namespace Common {
+class SeekableReadStream;
+}
 
 namespace Cryo {
 
-struct FrameInfo {
-	uint16 offset;
-	bool isCompressed;
-	uint16 width;
-	uint16 height;
-	int8 palOffset;
-};
-
-class Sprite {
+class HsqReadStream : public Common::ReadStream {
 public:
-	Sprite(Common::String filename, CryoEngine *engine);
-	~Sprite();
-
-	void setPalette();
-	uint16 getFrameCount();
-	FrameInfo getFrameInfo(uint16 frameIndex);
-	void drawFrame(uint16 frameIndex, uint16 x = 0, uint16 y = 0);
+	/**
+	 * A class that decompresses HSQ data and implements ReadStream for easy access
+	 * to the decompiled data.
+	 *
+	 * @param source              The source data
+	 */
+	HsqReadStream(Common::SeekableReadStream *source);
 
 private:
-	Common::SeekableReadStream *_stream;
+	enum {
+		BLOCK_SIZE = 0x1000
+	};
 
-	CryoEngine *_engine;
+private:
+	Common::SeekableReadStream *_source;
+	byte _window[BLOCK_SIZE];
+	uint _windowCursor;
+	bool _eosFlag;
+
+public:
+	bool eos() const;
+	uint32 read(void *dataPtr, uint32 dataSize);
+
+private:
+	/**
+	 * Decompress the next <numberOfBytes> from the source stream. Or until EOS
+	 *
+	 * @param numberOfBytes    How many bytes to decompress. This is a count of source bytes, not destination bytes
+	 */
+	uint32 decompressBytes(byte *destination, uint32 numberOfBytes);
 };
 
-} // End of namespace Cryo
- 
+}
+
 #endif

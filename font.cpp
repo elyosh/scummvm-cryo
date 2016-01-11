@@ -8,18 +8,15 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL: 
- * $Id: resource.cpp
  *
  */
 
@@ -42,13 +39,14 @@ namespace Cryo {
 
 #define SCREEN_WIDTH 320
 
-FixedFont::FixedFont(Common::String filename, OSystem *system) : _system(system) {
-	_res = new Resource(filename);
-	_res->_stream->read(_charWidth, 256);
+FixedFont::FixedFont(Common::String filename, CryoEngine *engine) : _engine(engine) {
+	ResourceManager *resMan = _engine->getResourceManager();
+	_stream = resMan->getResource(filename);
+	_stream->read(_charWidth, 256);
 }
 
 FixedFont::~FixedFont() {
-	delete _res;
+	delete _stream;
 }
 
 void FixedFont::drawText(Common::String text, uint16 x, uint16 y, byte color) {
@@ -57,17 +55,17 @@ void FixedFont::drawText(Common::String text, uint16 x, uint16 y, byte color) {
 	byte charLine;
 	byte *dest;
 
-	Graphics::Surface *screen = _system->lockScreen();
+	Graphics::Surface *screen = _engine->_system->lockScreen();
 	byte *scr = (byte *)screen->getPixels();
 
 	for (uint c = 0; c < text.size(); c++) {
 		dest = scr + y * SCREEN_WIDTH + curX;
 		curChar = text[c];
 
-		_res->_stream->seek(256 + curChar * 9);
+		_stream->seek(256 + curChar * 9);
 
 		for (uint charY = 0; charY < FIXED_FONT_HEIGHT; charY++) {
-			charLine = _res->_stream->readByte();
+			charLine = _stream->readByte();
 
 			for (uint charX = 0; charX < _charWidth[(uint8)curChar]; charX++) {
 				if (charLine & 0x80)
@@ -82,11 +80,11 @@ void FixedFont::drawText(Common::String text, uint16 x, uint16 y, byte color) {
 		curX += _charWidth[(uint8)curChar];
 	}
 
-	_system->unlockScreen();
+	_engine->_system->unlockScreen();
 }
 
-SpriteFont::SpriteFont(Common::String filename, OSystem *system) {
-	_spr = new Sprite(filename, system);
+SpriteFont::SpriteFont(Common::String filename, CryoEngine *engine) {
+	_spr = new Sprite(filename, engine);
 }
 
 SpriteFont::~SpriteFont() {

@@ -8,7 +8,8 @@ MODULE_OBJS := \
 	music.o \
 	resource.o \
 	sentences.o \
-	sprite.o
+	sprite.o \
+	hsq.o
 	
 MODULE_DIRS += \
 	engines/cryo

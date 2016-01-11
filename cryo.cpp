@@ -8,18 +8,15 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL: 
- * $Id: cryo.cpp
  *
  */
 
@@ -63,6 +60,7 @@ CryoEngine::CryoEngine(OSystem *syst, const ADGameDescription *gameDesc)
 	//OLDSTYLE 
 	//g_eventRec.registerRandomSource(_rnd, "cryo");
 	//NEWSTYLE
+	_resMan = 0;
 	_rnd = new Common::RandomSource("cryo_randomseed");
 	//debug("CryoEngine::CryoEngine");
 }
@@ -72,6 +70,8 @@ CryoEngine::~CryoEngine() {
 	//debug("CryoEngine::~CryoEngine");
  
 	// Remove all of our debug levels here
+	delete _resMan;
+	delete _rnd;
 	DebugMan.clearAllDebugChannels();
 }
  
@@ -88,20 +88,26 @@ Common::Error CryoEngine::run() {
 	Common::Event event;
 	Common::EventManager *eventMan = _system->getEventManager();
 
+	_resMan = new ResourceManager(isCD());
+
 	// Show something
-	Sprite *s = new Sprite("intds.hsq", _system);
+	Sprite *s = new Sprite("intds.hsq", this);
 	s->setPalette();
 	s->drawFrame(0, 0, 92);
 	delete s;
 
-	SpriteFont *sf = new SpriteFont("generic.hsq", _system);
+	SpriteFont *sf = new SpriteFont("generic.hsq", this);
 	sf->drawText("DUNE TEST", 100, 50);
 	delete sf;
 
 	Common::String charFile = isCD() ? "dnchar.bin" : "dunechar.hsq";
-	FixedFont *f = new FixedFont(charFile, _system);
+	FixedFont *f = new FixedFont(charFile, this);
 	f->drawText("DUNE TEST", 100, 120, 10);
 	delete f;
+
+	/*Game *g = new Game(_system);
+	g->loadProtection();
+	delete g;*/
 
 	// Update the screen so that its contents can be shown
 	_system->updateScreen();
