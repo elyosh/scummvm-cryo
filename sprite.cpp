@@ -22,6 +22,7 @@
 
 #include "common/memstream.h"
 #include "common/system.h"
+#include "common/debug.h"
 #include "graphics/palette.h"
 
 #include "cryo/resource.h"
@@ -32,6 +33,10 @@ namespace Cryo {
 Sprite::Sprite(Common::String filename, CryoEngine *engine) : _engine(engine) {
 	ResourceManager *resMan = _engine->getResourceManager();
 	_stream = resMan->getResource(filename);
+}
+
+Sprite::Sprite(Common::SeekableReadStream *stream, CryoEngine *engine) : _engine(engine), _stream(stream) {
+
 }
 
 Sprite::~Sprite() {
@@ -53,6 +58,11 @@ void Sprite::setPalette() {
 
 		if (palStart == 0xFF && palCount == 0xFF)
 			break;
+
+		if (palStart == 0 && palCount == 1) {
+			_stream->seek(3, SEEK_CUR);
+			continue;
+		}
 
 		byte *palChunk = new byte[palCount * 3];	// RGB
 		for (uint i = 0; i < palCount; i++) {
@@ -90,11 +100,16 @@ FrameInfo Sprite::getFrameInfo(uint16 frameIndex) {
 	_stream->skip(frameIndex * 2);
 	result.offset = _stream->readUint16LE();
 	_stream->seek(chunkStart + result.offset);
+	
+	uint16 infos = _stream->readUint16LE();
+	if (infos & 0x4000)
+		error("Unsupported compression 0x4000 !");
 
-	byte b1 = _stream->readByte();
-	byte b2 = _stream->readByte();
-	result.isCompressed = b2 & 0x80;
-	result.width = b1 | ((b2 & 0x7f) << 8);
+	if (infos & 0x2000)
+		error("Unsupported compression 0x2000 !");
+
+	result.isCompressed = infos & 0x8000;
+	result.width = infos & 0x01FF;
 	result.height = _stream->readByte();
 	result.palOffset = _stream->readSByte();
 
@@ -113,6 +128,7 @@ void Sprite::drawFrame(uint16 frameIndex, uint16 x, uint16 y) {
 	uint32 totalSize = info.width * info.height;
 
 	byte *rect = new byte[totalSize];
+	memset(rect, 0, totalSize);
 	byte *dst = rect;
 	uint32 cur = 0;
 	byte pixel;
@@ -143,8 +159,21 @@ void Sprite::drawFrame(uint16 frameIndex, uint16 x, uint16 y) {
 				if (!fillSingleValue)
 					pixel = _stream->readByte();
 
-				*dst++ = (pixel & 0xf) + info.palOffset;
-				*dst++ = (pixel >> 4) + info.palOffset;
+				byte pix1 = pixel & 0xf;
+				byte pix2 = pixel >> 4;
+
+				if (pix1) {
+					*dst++ = pix1 + info.palOffset;
+				} else {
+					dst++;
+				}
+
+				if (pix2) {
+					*dst++ = pix2 + info.palOffset;
+				} else {
+					dst++;
+				}
+
 				cur += 2;
 				if (cur >= totalSize)
 					break;

@@ -38,6 +38,7 @@ struct FrameInfo {
 class Sprite {
 public:
 	Sprite(Common::String filename, CryoEngine *engine);
+	Sprite(Common::SeekableReadStream *stream, CryoEngine *engine);
 	~Sprite();
 
 	void setPalette();
