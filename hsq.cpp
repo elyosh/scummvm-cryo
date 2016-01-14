@@ -135,7 +135,7 @@ uint32 HsqReadStream::read(void *dataPtr, uint32 dataSize) {
 		_eosFlag = true;
 	}
 
-	return dataSize;
+	return bytesRead;
 }
 
 } // End of namespace Cryo
